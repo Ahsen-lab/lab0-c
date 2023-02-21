@@ -224,10 +224,73 @@ void q_reverseK(struct list_head *head, int k)
         }
     }
 }
+
+/* Merge Two Sorted Lists */
+struct list_head *mergeTwoLists(struct list_head *l1, struct list_head *l2)
+{
+    /* cppcheck-suppress nullPointerRedundantCheck */
+    struct list_head *l1_tail = l1->prev, *l2_tail = l2->prev;
+    l1_tail->next = NULL;
+    l2_tail->next = NULL;
+
+    struct list_head *head = NULL, **ptr = NULL, **node = NULL, *prev = NULL;
+    for (ptr = &head; l1 && l2; ptr = &(*ptr)->next) {
+        element_t *l1_entry = list_entry(l1, element_t, list);
+        element_t *l2_entry = list_entry(l2, element_t, list);
+        node = ((strcmp(l1_entry->value, l2_entry->value) <= 0) ? &l1 : &l2);
+        *ptr = *node;
+        (*ptr)->prev = prev;
+        *node = (*node)->next;
+        prev = *ptr;
+    }
+
+    if (l1) {
+        *ptr = l1;
+        head->prev = l1_tail;
+        l1_tail->next = head;
+    } else {
+        *ptr = l2;
+        head->prev = l2_tail;
+        l2_tail->next = head;
+    }
+    (*ptr)->prev = prev;
+    return head;
+}
+
+/* Merge K Sorted Lists */
+struct list_head *mergeKLists(struct list_head *h)
+{
+    if (list_empty(h))
+        return h;
+
+    struct list_head *slow = h, *fast = h->next, *mid;
+
+    while (fast != h && fast->next != h) {
+        slow = slow->next;
+        fast = fast->next->next;
+    }
+    mid = slow->next;
+    mid->prev = h->prev;
+    h->prev->next = mid;
+    slow->next = h;
+    h->prev = slow;
+
+    slow = mergeKLists(h);
+    fast = mergeKLists(mid);
+    return mergeTwoLists(slow, fast);
 }
 
 /* Sort elements of queue in ascending order */
-void q_sort(struct list_head *head) {}
+void q_sort(struct list_head *head)
+{
+    if (!head || list_empty(head) || list_is_singular(head))
+        return;
+
+    struct list_head *newHead = head->next;
+    list_del_init(head);
+    newHead = mergeKLists(newHead);
+    list_add(head, newHead->prev);
+}
 
 /* Remove every node which has a node with a strictly greater value anywhere to
  * the right side of it */
