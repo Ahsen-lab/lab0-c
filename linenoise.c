@@ -105,6 +105,7 @@
 
 #include <ctype.h>
 #include <errno.h>
+#include <fcntl.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -116,6 +117,7 @@
 #include <unistd.h>
 
 #include "linenoise.h"
+#include "web.h"
 
 #define LINENOISE_DEFAULT_HISTORY_MAX_LEN 100
 #define LINENOISE_MAX_LINE 4096
@@ -893,6 +895,7 @@ static void line_edit_next_word(struct line_state *l)
  *
  * The function returns the length of the current buffer.
  */
+extern int web_connfd;
 static int line_edit(int stdin_fd,
                      int stdout_fd,
                      char *buf,
@@ -932,9 +935,58 @@ static int line_edit(int stdin_fd,
         int nread;
         char seq[5];
 
-        nread = read(l.ifd, &c, 1);
-        if (nread <= 0)
-            return l.len;
+        if (web_fd > 0) {
+            int flags = fcntl(web_fd, F_GETFL);
+            if (flags != (flags | O_NONBLOCK))
+                fcntl(web_fd, F_SETFL, flags | O_NONBLOCK);
+
+            fd_set set;
+            FD_ZERO(&set);
+            FD_SET(web_fd, &set);
+            FD_SET(stdin_fd, &set);
+
+            int rv = select(web_fd + 1, &set, NULL, NULL, NULL);
+            struct sockaddr_in clientaddr;
+            socklen_t clientlen = sizeof(clientaddr);
+
+            switch (rv) {
+            case -1:
+                perror("select"); /* an error occurred */
+                continue;
+            case 0:
+                printf("timeout occurred\n"); /* a timeout occurred */
+                continue;
+            default:
+                if (FD_ISSET(web_fd, &set)) {
+                    web_connfd = accept(web_fd, (SA *) &clientaddr, &clientlen);
+                    char *p = web_recv(web_connfd, &clientaddr);
+                    strncpy(buf, p, strlen(p) + 1);
+                    int len = strlen(p);
+                    char *buffer =
+                        "HTTP/1.1 200 OK\r\n%s%s%s%s%s%s"
+                        "Content-Type: text/html\r\n\r\n"
+                        "<html><head><style>"
+                        "body{font-family: monospace; font-size: 13px;}"
+                        "td {padding: 1.5px 6px;}"
+                        "</style><link rel=\"shortcut icon\" href=\"#\">"
+                        "</head><body><table>\n";
+                    web_send(web_connfd, buffer);
+                    free(p);
+                    use_web_fd = true;
+                    return len;
+                } else if (FD_ISSET(stdin_fd, &set)) {
+                    use_web_fd = false;
+                    nread = read(l.ifd, &c, 1);
+                    if (nread <= 0)
+                        return l.len;
+                }
+                break;
+            }
+        } else {
+            nread = read(l.ifd, &c, 1);
+            if (nread <= 0)
+                return l.len;
+        }
 
         /* Only autocomplete when the callback is set. It returns < 0 when
          * there was an error reading from fd. Otherwise it will return the
