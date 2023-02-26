@@ -972,10 +972,8 @@ static int line_edit(int stdin_fd,
                         "</head><body><table>\n";
                     web_send(web_connfd, buffer);
                     free(p);
-                    use_web_fd = true;
                     return len;
                 } else if (FD_ISSET(stdin_fd, &set)) {
-                    use_web_fd = false;
                     nread = read(l.ifd, &c, 1);
                     if (nread <= 0)
                         return l.len;

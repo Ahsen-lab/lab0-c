@@ -18,6 +18,7 @@
 /* Some global values */
 int simulation = 0;
 int show_entropy = 0;
+int web_fd = 0;
 static cmd_element_t *cmd_list = NULL;
 static param_element_t *param_list = NULL;
 static bool block_flag = false;
@@ -391,8 +392,6 @@ static bool do_time(int argc, char *argv[])
     return ok;
 }
 
-static bool use_linenoise = true;
-
 static bool do_web(int argc, char *argv[])
 {
     int port = 9999;
@@ -404,7 +403,6 @@ static bool do_web(int argc, char *argv[])
     web_fd = web_open(port);
     if (web_fd > 0) {
         printf("listen on port %d, fd is %d\n", port, web_fd);
-        use_linenoise = false;
     } else {
         perror("ERROR");
         exit(web_fd);
@@ -691,8 +689,6 @@ bool run_console(char *infile_name)
         return false;
     }
 
-    use_web_fd = false;
-
     if (!has_infile) {
         char *cmdline;
         while ((cmdline = linenoise(prompt)) != NULL) {
@@ -704,10 +700,8 @@ bool run_console(char *infile_name)
                 cmd_select(0, NULL, NULL, NULL, NULL);
             has_infile = false;
 
-            if (web_fd > 0 && use_web_fd) {
-                if (web_connfd > 0)
-                    close(web_connfd);
-            }
+            if (web_connfd > 0)
+                close(web_connfd);
         }
     } else {
         while (!cmd_done())
