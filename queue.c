@@ -195,8 +195,7 @@ void q_reverse(struct list_head *head)
     struct list_head *node, *safe;
 
     list_for_each_safe (node, safe, head) {
-        list_del(node);
-        list_add(node, head);
+        list_move(node, head);
     }
 }
 
@@ -208,16 +207,15 @@ void q_reverseK(struct list_head *head, int k)
         k > q_size(head))
         return;
 
-    struct list_head *node, *safe, *tmpHead = head;
+    struct list_head *node, *safe, *tmp_head = head;
     int count = 0;
 
     list_for_each_safe (node, safe, head) {
-        list_del(node);
-        list_add(node, tmpHead);
+        list_move(node, tmp_head);
 
         count++;
         if (count == k) {
-            tmpHead = safe->prev;
+            tmp_head = safe->prev;
             count = 0;
         }
     }
