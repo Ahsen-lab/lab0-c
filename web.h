@@ -9,4 +9,7 @@ char *web_recv(int fd, struct sockaddr_in *clientaddr);
 
 void web_send(int out_fd, char *buffer);
 
+typedef struct sockaddr SA;
+extern int web_fd;
+
 #endif

@@ -948,6 +948,57 @@ static bool do_next(int argc, char *argv[])
     return q_show(0);
 }
 
+static void q_shuffle(struct list_head *head)
+{
+    if (!head || list_empty(head) || list_is_singular(head))
+        return;
+
+    srand(time(NULL));
+    int len = q_size(head);
+    int random;
+    char *tmp;
+    struct list_head *old, *new = head->prev;
+    element_t *entry_old, *entry_new;
+
+    while (len-- > 1) {
+        random = rand() % len;
+        old = head->next;
+
+        while (random--)
+            old = old->next;
+
+        entry_old = list_entry(old, element_t, list);
+        entry_new = list_entry(new, element_t, list);
+
+        tmp = entry_old->value;
+        entry_old->value = entry_new->value;
+        entry_new->value = tmp;
+
+        new = new->prev;
+    }
+}
+
+static bool do_shuffle(int argc, char *argv[])
+{
+    if (argc != 1) {
+        report(1, "%s takes no arguments", argv[0]);
+        return false;
+    }
+
+    if (!current || !current->q)
+        report(3, "Warning: Calling shuffle on null queue");
+    error_check();
+
+    set_noallocate_mode(true);
+    if (current && exception_setup(true))
+        q_shuffle(current->q);
+    exception_cancel();
+
+    set_noallocate_mode(false);
+    q_show(3);
+    return !error_check();
+}
+
 static void console_init()
 {
     ADD_COMMAND(new, "Create new queue", "");
@@ -984,6 +1035,10 @@ static void console_init()
                 "");
     ADD_COMMAND(reverseK, "Reverse the nodes of the queue 'K' at a time",
                 "[K]");
+    ADD_COMMAND(shuffle,
+                "Shuffle all nodes in queue using the Fisher-Yates "
+                "shuffle algorithm",
+                "");
     add_param("length", &string_length, "Maximum length of displayed string",
               NULL);
     add_param("malloc", &fail_probability, "Malloc failure probability percent",
