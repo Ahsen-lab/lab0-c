@@ -156,18 +156,18 @@ bool q_delete_dup(struct list_head *head)
         return false;
 
     element_t *entry, *safe;
-    bool needDel = false;
+    bool need_del = false;
     list_for_each_entry_safe (entry, safe, head, list) {
         if (&safe->list != head && strcmp(entry->value, safe->value) == 0) {
             list_del_init(&entry->list);
             free(entry->value);
             free(entry);
-            needDel = true;
-        } else if (needDel) {
+            need_del = true;
+        } else if (need_del) {
             list_del_init(&entry->list);
             free(entry->value);
             free(entry);
-            needDel = false;
+            need_del = false;
         }
     }
     return true;
