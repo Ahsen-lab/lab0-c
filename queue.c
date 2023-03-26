@@ -221,36 +221,45 @@ void q_reverseK(struct list_head *head, int k)
     }
 }
 
+/**
+ * list_append() - Add all nodes from a list to the end of another list
+ * @list: pointer to the head of the list with the node entries to add
+ * @head: pointer to the head of the list to add the nodes to
+ *
+ * All nodes from @list, including the @list head, are added to the end of the
+ * list of @head.
+ */
+void list_append(struct list_head *list, struct list_head *head)
+{
+    struct list_head *head_last = head->prev;
+    struct list_head *list_last = list->prev;
+
+    head_last->next = list;
+    list_last->next = head;
+    list->prev = head_last;
+    head->prev = list_last;
+}
+
 /* Merge Two Sorted Lists */
 struct list_head *mergeTwoLists(struct list_head *l1, struct list_head *l2)
 {
-    /* cppcheck-suppress nullPointerRedundantCheck */
-    struct list_head *l1_tail = l1->prev, *l2_tail = l2->prev;
-    l1_tail->next = NULL;
-    l2_tail->next = NULL;
+    struct list_head *merged_head = NULL, **merged_tail = &merged_head,
+                     **cur = NULL;
+    element_t *e1 = NULL, *e2 = NULL;
 
-    struct list_head *head = NULL, **ptr = NULL, **node = NULL, *prev = NULL;
-    for (ptr = &head; l1 && l2; ptr = &(*ptr)->next) {
-        element_t *l1_entry = list_entry(l1, element_t, list);
-        element_t *l2_entry = list_entry(l2, element_t, list);
-        node = ((strcmp(l1_entry->value, l2_entry->value) <= 0) ? &l1 : &l2);
-        *ptr = *node;
-        (*ptr)->prev = prev;
-        *node = (*node)->next;
-        prev = *ptr;
+    while (l1->next != merged_head && l2->next != merged_head) {
+        e1 = list_entry(l1, element_t, list);
+        e2 = list_entry(l2, element_t, list);
+        cur = ((strcmp(e1->value, e2->value) <= 0) ? &l1 : &l2);
+        *merged_tail = *cur;
+        *cur = (*cur)->next;
+        list_del_init(*merged_tail);
+        list_add_tail(*merged_tail, merged_head);
+        merged_tail = &(*merged_tail)->next;
     }
-
-    if (l1) {
-        *ptr = l1;
-        head->prev = l1_tail;
-        l1_tail->next = head;
-    } else {
-        *ptr = l2;
-        head->prev = l2_tail;
-        l2_tail->next = head;
-    }
-    (*ptr)->prev = prev;
-    return head;
+    merged_head == l1->next ? list_append(l2, merged_head)
+                            : list_append(l1, merged_head);
+    return merged_head;
 }
 
 /* Merge K Sorted Lists */
