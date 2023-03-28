@@ -29,12 +29,12 @@ void q_free(struct list_head *l)
     if (!l)
         return;
 
-    struct list_head *node, *safe;
-    element_t *entry = NULL;
+    struct list_head *cur, *tmp;
+    element_t *elem = NULL;
 
-    list_for_each_safe (node, safe, l) {
-        entry = list_entry(node, element_t, list);
-        q_release_element(entry);
+    list_for_each_safe (cur, tmp, l) {
+        elem = list_entry(cur, element_t, list);
+        q_release_element(elem);
     }
     free(l);
 }
@@ -87,14 +87,14 @@ element_t *q_remove_head(struct list_head *head, char *sp, size_t bufsize)
     if (!head || list_empty(head))
         return NULL;
 
-    element_t *entry = list_entry(head->next, element_t, list);
+    element_t *elem = list_entry(head->next, element_t, list);
     list_del_init(head->next);
 
     if (sp) {
-        strncpy(sp, entry->value, bufsize);
+        strncpy(sp, elem->value, bufsize);
         sp[bufsize - 1] = '\0';
     }
-    return entry;
+    return elem;
 }
 
 /* Remove an element from tail of queue */
@@ -103,14 +103,14 @@ element_t *q_remove_tail(struct list_head *head, char *sp, size_t bufsize)
     if (!head || list_empty(head))
         return NULL;
 
-    element_t *entry = list_entry(head->prev, element_t, list);
+    element_t *elem = list_entry(head->prev, element_t, list);
     list_del_init(head->prev);
 
     if (sp) {
-        strncpy(sp, entry->value, bufsize);
+        strncpy(sp, elem->value, bufsize);
         sp[bufsize - 1] = '\0';
     }
-    return entry;
+    return elem;
 }
 
 /* Return number of elements in queue */
@@ -140,9 +140,9 @@ bool q_delete_mid(struct list_head *head)
         fast = fast->next->next;
     }
 
-    element_t *entry = list_entry(mid, element_t, list);
+    element_t *elem = list_entry(mid, element_t, list);
     list_del_init(mid);
-    q_release_element(entry);
+    q_release_element(elem);
     return true;
 }
 
@@ -188,10 +188,10 @@ void q_reverse(struct list_head *head)
     if (!head || list_empty(head) || list_is_singular(head))
         return;
 
-    struct list_head *node, *safe;
+    struct list_head *cur, *tmp;
 
-    list_for_each_safe (node, safe, head) {
-        list_move(node, head);
+    list_for_each_safe (cur, tmp, head) {
+        list_move(cur, head);
     }
 }
 
@@ -203,15 +203,15 @@ void q_reverseK(struct list_head *head, int k)
         k > q_size(head))
         return;
 
-    struct list_head *node, *safe, *tmp_head = head;
+    struct list_head *cur, *tmp, *tmp_head = head;
     int count = 0;
 
-    list_for_each_safe (node, safe, head) {
-        list_move(node, tmp_head);
+    list_for_each_safe (cur, tmp, head) {
+        list_move(cur, tmp_head);
 
         count++;
         if (count == k) {
-            tmp_head = safe->prev;
+            tmp_head = tmp->prev;
             count = 0;
         }
     }
@@ -237,7 +237,7 @@ void list_append(struct list_head *list, struct list_head *head)
 }
 
 /* Merge Two Sorted Lists */
-struct list_head *mergeTwoLists(struct list_head *l1, struct list_head *l2)
+struct list_head *merge_two_lists(struct list_head *l1, struct list_head *l2)
 {
     struct list_head *merged_head = NULL, **merged_tail = &merged_head,
                      **cur = NULL;
@@ -259,7 +259,7 @@ struct list_head *mergeTwoLists(struct list_head *l1, struct list_head *l2)
 }
 
 /* Merge K Sorted Lists */
-struct list_head *mergeKLists(struct list_head *h)
+struct list_head *merge_k_lists(struct list_head *h)
 {
     if (list_empty(h))
         return h;
@@ -276,9 +276,9 @@ struct list_head *mergeKLists(struct list_head *h)
     slow->next = h;
     h->prev = slow;
 
-    slow = mergeKLists(h);
-    fast = mergeKLists(mid);
-    return mergeTwoLists(slow, fast);
+    slow = merge_k_lists(h);
+    fast = merge_k_lists(mid);
+    return merge_two_lists(slow, fast);
 }
 
 /* Sort elements of queue in ascending order */
@@ -287,10 +287,10 @@ void q_sort(struct list_head *head)
     if (!head || list_empty(head) || list_is_singular(head))
         return;
 
-    struct list_head *newHead = head->next;
+    struct list_head *new_queue = head->next;
     list_del_init(head);
-    newHead = mergeKLists(newHead);
-    list_add(head, newHead->prev);
+    new_queue = merge_k_lists(new_queue);
+    list_add(head, new_queue->prev);
 }
 
 /* Remove every node which has a node with a strictly greater value anywhere to
@@ -306,23 +306,23 @@ int q_descend(struct list_head *head)
 
     q_reverse(head);
 
-    element_t *entry, *safe;
-    element_t *entryHead = list_entry(head->next, element_t, list);
+    element_t *cur, *tmp;
+    element_t *first = list_entry(head->next, element_t, list);
 
-    int size = 0, del = 0;
+    int size = 0, deleted_nodes = 0;
 
-    list_for_each_entry_safe (entry, safe, head, list) {
+    list_for_each_entry_safe (cur, tmp, head, list) {
         size++;
-        if (strcmp(entryHead->value, entry->value) > 0) {
-            list_del_init(&entry->list);
-            q_release_element(entry);
-            del++;
+        if (strcmp(first->value, cur->value) > 0) {
+            list_del_init(&cur->list);
+            q_release_element(cur);
+            deleted_nodes++;
         } else {
-            entryHead = entry;
+            first = cur;
         }
     }
     q_reverse(head);
-    return size - del;
+    return size - deleted_nodes;
 }
 
 /* Merge all the queues into one sorted queue, which is in ascending order */
@@ -332,24 +332,24 @@ int q_merge(struct list_head *head)
     if (!head || list_empty(head))
         return 0;
 
-    queue_contex_t *chainHead = list_entry(head->next, queue_contex_t, chain);
+    queue_contex_t *head_chain = list_entry(head->next, queue_contex_t, chain);
     if (list_is_singular(head))
-        return chainHead->size;
+        return head_chain->size;
 
-    struct list_head *queue = chainHead->q->next, *chain = NULL;
-    list_del_init(chainHead->q);
+    struct list_head *queue = head_chain->q->next, *chain = NULL;
+    list_del_init(head_chain->q);
 
     queue_contex_t *entry, *safe;
-    int total = chainHead->size;
+    int total = head_chain->size;
 
     list_for_each_entry_safe (entry, safe, head, chain) {
-        if (entry == chainHead)
+        if (entry == head_chain)
             continue;
         chain = entry->q->next;
         list_del_init(entry->q);
-        queue = mergeTwoLists(queue, chain);
+        queue = merge_two_lists(queue, chain);
         total += entry->size;
     }
-    list_add(chainHead->q, queue->prev);
+    list_add(head_chain->q, queue->prev);
     return total;
 }
