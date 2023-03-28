@@ -153,17 +153,17 @@ bool q_delete_dup(struct list_head *head)
     if (!head || list_empty(head))
         return false;
 
-    element_t *entry, *safe;
-    bool need_del = false;
-    list_for_each_entry_safe (entry, safe, head, list) {
-        if (&safe->list != head && strcmp(entry->value, safe->value) == 0) {
-            list_del_init(&entry->list);
-            q_release_element(entry);
-            need_del = true;
-        } else if (need_del) {
-            list_del_init(&entry->list);
-            q_release_element(entry);
-            need_del = false;
+    element_t *cur, *tmp;
+    bool found_dup = false;
+    list_for_each_entry_safe (cur, tmp, head, list) {
+        if (&tmp->list != head && strcmp(cur->value, tmp->value) == 0) {
+            list_del_init(&cur->list);
+            q_release_element(cur);
+            found_dup = true;
+        } else if (found_dup) {
+            list_del_init(&cur->list);
+            q_release_element(cur);
+            found_dup = false;
         }
     }
     return true;
