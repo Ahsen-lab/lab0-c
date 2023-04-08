@@ -339,16 +339,16 @@ int q_merge(struct list_head *head)
     struct list_head *queue = head_chain->q->next, *chain = NULL;
     list_del_init(head_chain->q);
 
-    queue_contex_t *entry, *safe;
+    queue_contex_t *cur, *tmp;
     int total = head_chain->size;
 
-    list_for_each_entry_safe (entry, safe, head, chain) {
-        if (entry == head_chain)
+    list_for_each_entry_safe (cur, tmp, head, chain) {
+        if (cur == head_chain)
             continue;
-        chain = entry->q->next;
-        list_del_init(entry->q);
+        chain = cur->q->next;
+        list_del_init(cur->q);
         queue = merge_two_lists(queue, chain);
-        total += entry->size;
+        total += cur->size;
     }
     list_add(head_chain->q, queue->prev);
     return total;
